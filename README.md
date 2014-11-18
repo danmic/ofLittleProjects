@@ -1,9 +1,8 @@
 openFrameworks Little Projects
 ================
 
-<<<<<<< HEAD
 The apps are inside the respective bin folder.
-=======
+
 The apps are inside the bin folder.
 >>>>>>> FETCH_HEAD
 
