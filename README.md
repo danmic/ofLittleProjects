@@ -7,3 +7,4 @@ The apps are inside the respective bin folder.
 
 * **Particle System**
 
+* **Multitrack Example** Interactive app to tune the volumes of a multitrack project. The files are taken from [The 'Mixing Secrets' Free Multitrack Download Library](http://www.cambridge-mt.com/ms-mtk.htm).
