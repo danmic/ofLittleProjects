@@ -1,27 +1,64 @@
 #include "ofApp.h"
 
-bool mouseP = false;
-ofFbo fbo;
+//Parameters
+
+float lifespan = 10;        //Particles lifetime in seconds
+ofPoint initVel(10, 0);     //Initial velocity of particles
+ofPoint initAcc(0, 0);      //Initial acceleration of particles
+float mass = 2;             //Mass of the particles
+ofPoint initPos;            //Initial position of particle systems
+
 
 //--------------------------------------------------------------
 void ofApp::setup(){
 
     ofSetFrameRate(60);
     
-    fbo.allocate(ofGetWidth(), ofGetHeight(), GL_RGB32F);
-    fbo.begin();
-    ofBackground(128, 128, 128);
-    fbo.end();
+    //Load Image for particle
+    ofLoadImage(image, "particle.png");
     
-    ofPoint initPos = ofPoint( ofGetWidth() / 2, ofGetHeight() / 2 );
-    float lifespan = 10;
-    ofColor color = ofColor::white;
-    ofPoint initVel = ofPoint(0, 0);
-    ofPoint initAcc = ofPoint(0, 0);
+    //Color Palette
+    colors.push_back( ofColor(0, 142, 255, 128) );
+    colors.push_back( ofColor(232, 137, 12, 128) );
+    colors.push_back( ofColor(0, 71, 127, 128) );
+    colors.push_back( ofColor(255, 100) );
     
-    ParticleParams params ( initPos, lifespan, color, initVel, initAcc, 1 );
+    //Set up initial position
+    initPos = ofPoint(ofGetWidth() / 2, ofGetHeight() / 6);
     
-    p.setup(params);
+    for (int i = 0; i < N; i++) {
+    
+        float magnitude = 10;
+        float angle = 360 / float(N);
+        initPos += ofPoint(magnitude, 0).rotate(i*angle, ofPoint(0, 0, 1));
+        
+        //set up params
+        ParticleParams params ( initPos, lifespan, colors[ i % colors.size() ], initVel, initAcc, mass);
+        Particle p;
+        p.setup(params);
+        p.setTexture(image);
+        
+        //Set up particle systems
+        ParticleSystem system;
+        system.setup(p, 10);
+        
+        systems.push_back(system);
+        
+    }
+    
+    //Sound
+    track.loadSound("satie-gymnopedie1-pfaul.mp3");
+    track.setVolume(0.5);
+    //track.play();
+    
+    //initialize spectrum and previous spectrum
+    for (int i = 0; i != N; i++) {
+        spectrum.push_back(0.0f);
+        prevSpectrum.push_back(0.0f);
+    }
+    
+    //Initialize the threshold
+    threshold = 1;
     
     time0 = ofGetElapsedTimef();
     
@@ -33,49 +70,111 @@ void ofApp::update(){
     float time = ofGetElapsedTimef();
     float dt = time - time0;
     
-    if (p.isAlive()) {
-        p.update(dt);
+    ofSoundUpdate();
+    
+    int K = 8;                              //Number of bands
+    float *val = ofSoundGetSpectrum(K);     //Generate the spectrum
+    
+    //Dynamically change the threshold according to the current framerate
+    if (ofGetFrameRate() < 40) {
+        threshold = ofClamp(threshold + 0.01, 0.95, 0.98);
+    }else{
+        threshold = ofClamp(threshold - 0.001, 0.95, 0.98);
     }
+    
+    
+    for (int i = 0; i != N; i++) {
+        
+        //Avoid a sudden change of spectrum
+        spectrum[i] *= threshold;
+        spectrum[i] = max(spectrum[i], val[i]);
+        
+        //Apply the gravity
+        systems[i].applyForce(gravity);
+        systems[i].update(dt);
+        
+        //Change the position of the particle systems
+        //using Perlin Noise
+        initPos.x = systems[i].getPosition().x;
+        initPos.y = systems[i].getPosition().y;
+        initPos.x += ofMap(ofNoise(0.5 * time + 100 + i * 10), 0, 1, -2, 2);
+        initPos.y += ofMap(ofNoise(0.5 * time + 200 + i * 20), 0, 1, -2, 2);
+        
+        initPos.x = ofClamp(initPos.x, 1/5.0 * ofGetWidth(), 4/5.0 * ofGetWidth());
+        initPos.y = ofClamp(initPos.y, 1/10.0 * ofGetHeight(), 1/3.0 * ofGetHeight());
+        
+        //Move the particle systems
+        systems[i].moveEmitter(initPos.x, initPos.y);
+        
+    }
+    
+    
+    for (int i = 0; i < N; i++) {
+        
+        if (spectrum[i] > 0.001 && spectrum[i] * (i/2.0 + 1) > 1.5 * prevSpectrum[i] && prevSpectrum[i] != 0.0f) {
+            
+            //Number of particles to emit
+            int n = ofClamp(int(50 * spectrum[i] * (20*i+1)/2.0), 1, 10);
+            
+            //Initial velocity
+            //Rotate vector of an angle between 0 and 180¡
+            initVel = ofPoint(50, 0).rotate(ofNoise(0.2 * time)*180, ofPoint(0, 0, 1));
+            //Varying velocity according to the number of particles
+            initVel *= 0.05 * n;
+            
+            //Mass
+            mass = ofClamp( 10 * (1+10*i) * spectrum[i], 2, 10);
+            
+            //
+            Particle p;
+            
+            ParticleParams params (systems[i].getPosition(), 10, colors[ i % colors.size() ], initVel, initAcc, mass);
+            p.setup(params);
+            p.setTexture(image);
+            
+            
+            systems[i].setup(p, n);
+            
+            systems[i].applyForce(gravity);
+            
+            systems[i].emission();
+            
+        }
+        
+    }
+    
+    for (int i = 0; i != N; i++) {
+        prevSpectrum[i] = spectrum[i];
+    }
+    
     
     time0 = ofGetElapsedTimef();
-    
-    friction = 0.01 * p.getVelocity() * p.getMass();
-    p.applyForce(friction);
-    
-    if (mouseP) {
-        ofPoint force;
-        force.x = mouseX - p.getPosition().x;
-        force.y = mouseY - p.getPosition().y;
-        
-        p.applyForce(force);
-    }
-    
-    
-    fbo.begin();
-        ofSetColor(128, 128, 128, 50);
-        ofRect(0, 0, ofGetWidth(), ofGetHeight());
-        p.display();
-    fbo.end();
-    
     
 }
 
 //--------------------------------------------------------------
 void ofApp::draw(){
     
-    ofBackground(128, 128, 128);
     
-    ofSetColor(255, 255, 255, 128);
-    ofCircle(mouseX, mouseY, 3);
     
+    //Set a black background
+    ofBackground(0);
+    
+    //Draw the particle systems
     ofSetColor(255, 255, 255);
-    fbo.draw(0, 0);
-
+    for (int i = 0; i < N; i++) {
+        systems[i].display();
+        //ofSetColor(colors[i]);
+        //ofCircle(systems[i].getPosition(), 5);
+    }
+    
 }
 
 //--------------------------------------------------------------
 void ofApp::keyPressed(int key){
 
+    track.play();
+    
 }
 
 //--------------------------------------------------------------
@@ -85,7 +184,7 @@ void ofApp::keyReleased(int key){
 
 //--------------------------------------------------------------
 void ofApp::mouseMoved(int x, int y ){
-
+    
 }
 
 //--------------------------------------------------------------
@@ -95,15 +194,10 @@ void ofApp::mouseDragged(int x, int y, int button){
 
 //--------------------------------------------------------------
 void ofApp::mousePressed(int x, int y, int button){
-    
-    mouseP = true;
-
 }
 
 //--------------------------------------------------------------
 void ofApp::mouseReleased(int x, int y, int button){
-
-    mouseP = false;
     
 }
 

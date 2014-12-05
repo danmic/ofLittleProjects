@@ -3,14 +3,15 @@
 #include "ofMain.h"
 
 class ParticleParams;
-class QueueElement;
 
 class Particle {
+    
+    friend class ParticleSystem;
     
 public:
     
     //Constructor
-    Particle() : mass(1.0), color( ofColor::white ), lifespan(10.0), timeStep(1.0) { }
+    Particle() : mass(1.0), color( ofColor::white ), lifespan(10.0), timeStep(1.0), textureSet(false) { }
     
     //Get the parameters
     ofPoint getPosition() const { return position; }
@@ -22,6 +23,12 @@ public:
     
     //Set up the parameters
     void setup(const ParticleParams& params);
+    
+    //Set the velocity to a given value
+    void setVelocity(const ofPoint& velocity){ this->velocity = velocity; }
+    
+    //Set texture
+    void setTexture(const ofTexture& texture);
     
     //Apply a force to the particle
     void applyForce(const ofPoint& force);
@@ -49,6 +56,9 @@ private:
     //Timestep (> 0) indicates the speed with which the particle dies
     //TimeStep = 1 by default. Set timeStep = 0, to avoid the death of the particle
     float timeStep;
+    //If the particle has no texture associated, then it'll be drawn as a ofCircle
+    ofTexture texture;
+    bool textureSet;
 
 };
 

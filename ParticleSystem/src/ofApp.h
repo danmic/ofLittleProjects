@@ -2,6 +2,7 @@
 
 #include "ofMain.h"
 #include "Particle.h"
+#include "ParticleSystem.h"
 
 class ofApp : public ofBaseApp{
 
@@ -20,8 +21,19 @@ class ofApp : public ofBaseApp{
 		void dragEvent(ofDragInfo dragInfo);
 		void gotMessage(ofMessage msg);
 		
-    Particle p;
-    ofPoint friction;
-    float time0;
+    vector<ParticleSystem> systems;     //Vector of more particle systems
+    vector<ofColor> colors;             //Palette
+    ofTexture image;                    //Image for the particles
+    float time0;                        //starting time
+    
+    float threshold;
+    
+    ofSoundPlayer track;                //Track
+    const int N = 2;                    //Number of particle systems
+    vector<float> spectrum;             //Current spectrum
+    vector<float> prevSpectrum;         //Spectrum of the previous step
+    
+    
+    ofPoint gravity = ofPoint(0, 9.8);    //Gravity
     
 };

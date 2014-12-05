@@ -16,6 +16,11 @@ void Particle::setup(const ParticleParams &params){
     
 }
 
+void Particle::setTexture(const ofTexture &texture){
+    this->texture = texture;
+    textureSet = true;
+}
+
 void Particle::update(float dt){
     
     if ( isAlive() ) {   //Check if the particle is alive
@@ -26,6 +31,10 @@ void Particle::update(float dt){
         
         velocity += acceleration * deltaT;
         position += velocity * deltaT;
+        
+        //Set acceleration to 0, to avoid the accumulation
+        //with the previous value
+        acceleration *= 0;
         
         //Decrease lifespan
         lifespan -= timeStep * deltaT;
@@ -42,7 +51,7 @@ void Particle::applyForce(const ofPoint& force){
     
 }
 
-void Particle::display(){
+void Particle::display() {
 
     if( isAlive() )
     {
@@ -76,8 +85,12 @@ void Particle::display(){
         }
 
         //Draw the particle
-        ofSetCircleResolution(20);
-        ofCircle(position, radius);
+        if (textureSet) {
+            texture.draw(position.x, position.y, 2*radius, 2*radius);
+        }else{
+            ofSetCircleResolution(20);
+            ofCircle(position, radius);
+        }
     }
 }
 
