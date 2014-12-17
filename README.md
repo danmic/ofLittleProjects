@@ -9,3 +9,10 @@ The apps are inside the respective bin folder.
 Note: Press any key to play the track.
 
 * **Multitrack Example** Interactive app to tune the volumes of a multitrack project. The files are taken from [The 'Mixing Secrets' Free Multitrack Download Library](http://www.cambridge-mt.com/ms-mtk.htm). - [Video](https://vimeo.com/113171839)
+
+* **One-Dimensional Cellular Automata** This sketch generates 256 representations of all possible rulesets of one-dimensional cellular automata. - [Video](https://vimeo.com/114766075)
+
+	The cellular automata represented share these features:
+	1. The grid of a single generation is toroidal.
+	2. The state of every cell can be 0 (white) or 1 (black).
+	3. One cell has two neighbours, the one on its left and the one on its right (according to the first feature).
